@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile — CineMatch AI{% endblock %}
+
+{% block content %}
+<div class="profile-page-container">
+    <div class="content-container">
+        <!-- Profile Header Card -->
+        <div class="profile-hero-card">
+            <div class="profile-hero-left">
+                <div class="profile-avatar-large">
+                    {{ user.username[0]|upper }}
+                </div>
+                <div class="profile-identity">
+                    <span class="profile-badge">CineMatch Member</span>
+                    <h1 class="profile-username">{{ user.username }}</h1>
+                    <p class="profile-email">{{ user.email }}</p>
+                    <span class="profile-joined">Member since: {{ user.created_at[:10] }}</span>
+                </div>
+            </div>
+
+            <div class="profile-hero-right">
+                <a href="{{ url_for('watchlist') }}" class="profile-stat-box">
+                    <span class="stat-number">{{ stats.watchlist_count }}</span>
+                    <span class="stat-label">In Watchlist →</span>
+                </a>
+                <div class="profile-stat-box">
+                    <span class="stat-number">{{ stats.ratings_count }}</span>
+                    <span class="stat-label">Movies Rated</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Favorite Genres (single full-width column) -->
+        <div class="profile-body-grid" style="grid-template-columns: 1fr;">
+            <!-- Favorite Genres Selector Form -->
+            <div class="profile-section-card">
+                <div class="section-card-header">
+                    <h2 class="card-title">Favorite Genres</h2>
+                    <p class="card-subtitle">Choose the genres you enjoy to personalize your browsing experience.</p>
+                </div>
+
+                <form action="{{ url_for('profile') }}" method="POST" class="genres-form">
+                    <div class="genres-checkbox-grid">
+                        {% set current_genres = user.favorite_genres.split(', ') if user.favorite_genres else [] %}
+                        {% for g in genres_list %}
+                            <label class="genre-checkbox-label">
+                                <input 
+                                    type="checkbox" 
+                                    name="genres" 
+                                    value="{{ g }}"
+                                    {% if g in current_genres %}checked{% endif %}
+                                >
+                                <span class="custom-checkbox"></span>
+                                <span class="genre-name">{{ g }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+
+                    <button type="submit" class="save-profile-btn">
+                        Save Preferences
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

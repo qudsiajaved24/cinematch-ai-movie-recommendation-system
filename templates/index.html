@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}CineMatch AI — Movie Discovery & Recommendations{% endblock %}
+
+{% block content %}
+<!-- Cinematic Hero Section -->
+<section class="hero-section">
+    <div class="hero-backdrop-glow"></div>
+    <div class="hero-container">
+        <h1 class="hero-title">
+            Discover Movies <br>
+            <span class="text-gold-gradient">You'll Truly Love</span>
+        </h1>
+
+        <p class="hero-subtitle">
+            Search movies, directors, actors, or genres.
+        </p>
+
+        <!-- Main Hero Search Bar -->
+        <div class="hero-search-box">
+            <form action="{{ url_for('search') }}" method="GET" class="hero-search-form" autocomplete="off">
+                <span class="hero-search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    name="q" 
+                    id="heroSearchInput" 
+                    class="hero-search-input" 
+                    placeholder="Search any movie, director, cast, or genre..." 
+                    required
+                >
+                <button type="submit" class="hero-search-btn">
+                    Find Movies
+                </button>
+            </form>
+            <div id="heroSearchDropdown" class="search-dropdown-menu"></div>
+        </div>
+
+        <!-- Quick Demo Shortcuts -->
+        <div class="hero-quick-shortcuts">
+            <span class="shortcuts-label">Not sure where to start? Try one of these:</span>
+            <div class="shortcuts-list">
+                {% for sample in sample_movies %}
+                    <a href="{{ url_for('recommend', movie_id=sample.id) }}" class="shortcut-tag">
+                        {{ sample.title }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Movies Section -->
+<section class="featured-section">
+    <div class="content-container">
+        <div class="section-title-row">
+            <div>
+                <span class="section-kicker">Curated Collection</span>
+                <h2 class="section-heading">Featured Cinema</h2>
+            </div>
+            <a href="{{ url_for('explore') }}" class="view-all-link">
+                Browse all movies →
+            </a>
+        </div>
+
+        <!-- Movie Grid -->
+        <div class="movies-grid">
+            {% for movie in featured_movies %}
+            <article class="movie-card">
+                <div class="movie-poster-box">
+                    {% if movie.poster_url %}
+                        <img 
+                            src="{{ movie.poster_url }}" 
+                            alt="{{ movie.title }} Poster" 
+                            class="movie-poster-img"
+                            loading="lazy"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        <div class="poster-fallback" style="display: none;">
+                            <span class="fallback-icon">🎬</span>
+                            <span class="fallback-title">{{ movie.title }}</span>
+                        </div>
+                    {% else %}
+                        <div class="poster-fallback">
+                            <span class="fallback-icon">🎬</span>
+                            <span class="fallback-title">{{ movie.title }}</span>
+                            <span class="fallback-note">Poster unavailable</span>
+                        </div>
+                    {% endif %}
+
+                    <!-- Hover Overlay Actions -->
+                    <div class="movie-card-overlay">
+                        <a href="{{ url_for('recommend', movie_id=movie.id) }}" class="card-action-btn primary-btn">
+                            ★ Recommend Similar
+                        </a>
+                        <a href="{{ url_for('movie_detail', movie_id=movie.id) }}" class="card-action-btn secondary-btn">
+                            View Details
+                        </a>
+                        <button 
+                            type="button" 
+                            class="card-action-btn watchlist-card-btn {% if movie.in_watchlist %}active{% endif %}"
+                            data-movie-id="{{ movie.id }}"
+                            onclick="toggleWatchlist(this, Number(this.dataset.movieId))"
+                        >
+                            {% if movie.in_watchlist %}✓ In Watchlist{% else %}🔖 Watchlist{% endif %}
+                        </button>
+                    </div>
+
+                    <!-- Card Rating Badge -->
+                    <div class="card-rating-badge">
+                        <span class="star-icon">★</span>
+                        <span>{{ movie.vote_average }}</span>
+                    </div>
+                </div>
+
+                <div class="movie-info-box">
+                    <h3 class="movie-title">
+                        <a href="{{ url_for('movie_detail', movie_id=movie.id) }}">{{ movie.title }}</a>
+                    </h3>
+                    <div class="movie-meta">
+                        <span>{{ movie.release_year }}</span>
+                        <span class="meta-dot">·</span>
+                        <span class="movie-genre-text">{{ movie.genres_str.split(',')[0] }}</span>
+                        {% if movie.runtime %}
+                        <span class="meta-dot">·</span>
+                        <span>{{ movie.runtime|int }}m</span>
+                        {% endif %}
+                    </div>
+                    {% if movie.director and movie.director != 'Unknown' %}
+                    <div class="movie-director-meta">
+                        Dir. {{ movie.director }}
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

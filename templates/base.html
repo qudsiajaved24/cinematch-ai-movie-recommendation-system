@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CineMatch AI - Movie Recommendation System{% endblock %}</title>
+    <meta name="description" content="Discover movies and get personalized recommendations with CineMatch AI.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="cinematic-theme">
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages-container" aria-live="polite">
+                {% for category, message in messages %}
+                    <div class="flash-toast flash-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button type="button"
+                                class="flash-close-btn"
+                                aria-label="Dismiss notification"
+                                onclick="this.parentElement.remove()">✕</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Header Navigation -->
+    <header class="site-header">
+        <div class="header-container">
+            <a href="{{ url_for('home') }}" class="brand-logo" aria-label="CineMatch AI Home">
+                <span class="logo-icon" aria-hidden="true">★</span>
+                <span class="brand-text">Cine<span class="text-gold">Match</span></span>
+            </a>
+
+            <!-- Search -->
+            <div class="header-search-wrapper">
+                <form action="{{ url_for('search') }}"
+                      method="GET"
+                      class="header-search-form"
+                      autocomplete="off">
+                    <span class="search-icon" aria-hidden="true">🔍</span>
+                    <input
+                        type="text"
+                        name="q"
+                        id="headerSearchInput"
+                        class="header-search-input"
+                        placeholder="Search movies"
+                        value="{{ search_query|default('', true) }}"
+                        aria-label="Search movies">
+                    <button type="submit" class="search-submit-btn">Search</button>
+                </form>
+                <div id="searchResultsDropdown" class="search-dropdown-menu"></div>
+            </div>
+
+            <!-- Primary Navigation -->
+            <nav class="nav-links" aria-label="Main navigation">
+                <a href="{{ url_for('home') }}"
+                   class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">Home</a>
+                <a href="{{ url_for('explore') }}"
+                   class="nav-link {% if request.endpoint == 'explore' %}active{% endif %}">Explore</a>
+                <a href="{{ url_for('recommendations') }}"
+                   class="nav-link {% if request.endpoint in ['recommendations', 'recommend'] %}active{% endif %}">Recommendations</a>
+                <a href="{{ url_for('watchlist') }}"
+                   class="nav-link {% if request.endpoint == 'watchlist' %}active{% endif %}">
+                    Watchlist
+                    {% set nav_count = watchlist_count|default(0, true)|int %}
+                    <span id="navWatchlistBadge"
+                          class="nav-badge"
+                          {% if nav_count == 0 %}style="display: none;"{% endif %}>{{ nav_count }}</span>
+                </a>
+                <a href="{{ url_for('about') }}"
+                   class="nav-link {% if request.endpoint in ['about', 'about_ml_redirect'] %}active{% endif %}">About</a>
+            </nav>
+
+            <!-- Authentication / Profile -->
+            <div class="user-auth-nav">
+                {% if current_user is defined and current_user and (current_user.is_authenticated is not defined or current_user.is_authenticated) %}
+                    <style>
+                        .pm-wrap{position:relative}
+                        .pm-trigger{cursor:pointer;font-family:inherit}
+                        .pm-caret{font-size:.7rem;color:var(--text-secondary);transition:transform .15s}
+                        .pm-trigger[aria-expanded="true"] .pm-caret{transform:rotate(180deg)}
+                        .pm-trigger[aria-expanded="true"]{border-color:var(--gold-primary);background-color:var(--bg-surface-elevated)}
+                        .pm-trigger:focus-visible,.pm-item:focus-visible{outline:2px solid var(--gold-primary);outline-offset:2px}
+                        .pm-menu{position:absolute;right:0;top:calc(100% + 10px);width:310px;max-width:calc(100vw - 1rem);padding:.5rem;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:var(--radius-lg);box-shadow:var(--shadow-elevated);z-index:200;display:none}
+                        .pm-menu.open{display:block}
+                        .pm-who{display:flex;align-items:center;gap:.7rem;padding:.6rem .7rem .75rem;margin-bottom:.35rem;border-bottom:1px solid var(--border-subtle);text-decoration:none;color:var(--text-primary);border-radius:var(--radius-md)}
+                        .pm-who:hover{background:var(--bg-surface-elevated)}
+                        .pm-who .profile-avatar-circle{width:34px;height:34px;font-size:.95rem;flex:0 0 34px}
+                        .pm-who strong{display:block;font-size:.92rem}
+                        .pm-who small{color:var(--text-muted);font-size:.76rem}
+                        .pm-item{display:flex;align-items:center;gap:.8rem;padding:.65rem .7rem;margin-top:.25rem;border-radius:var(--radius-md);text-decoration:none;color:var(--text-primary);border:1px solid transparent}
+                        .pm-item:hover{background:var(--bg-surface-elevated);border-color:var(--border-card)}
+                        .pm-icon{font-size:1.25rem;width:1.6rem;text-align:center;flex:0 0 1.6rem}
+                        .pm-text{flex:1;min-width:0}
+                        .pm-text strong{display:block;font-size:.9rem}
+                        .pm-text span{display:block;font-size:.76rem;color:var(--text-muted);line-height:1.35}
+                        .pm-arrow{color:var(--text-muted)}
+                        .pm-item:hover .pm-arrow{color:var(--gold-primary)}
+                        .pm-count{background:var(--gold-primary);color:#090a0f;font-size:.68rem;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
+                        .pm-out:hover{border-color:rgba(239,68,68,.45)}
+                        .pm-out:hover strong{color:#ef4444}
+                        @media (max-width:640px){.pm-trigger .profile-name{display:none}}
+                    </style>
+                    <div class="pm-wrap" id="pmWrap">
+                        <button type="button"
+                                class="user-profile-btn pm-trigger {% if request.endpoint == 'profile' %}active{% endif %}"
+                                id="pmTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="pmMenu">
+                            <span class="profile-avatar-circle">{{ (current_user.username|default('U', true))[0]|upper }}</span>
+                            <span class="profile-name">{{ current_user.username|default('User', true) }}</span>
+                            <span class="pm-caret" aria-hidden="true">▼</span>
+                        </button>
+
+                        <div class="pm-menu" id="pmMenu" role="menu" aria-label="Account menu">
+                            <a href="{{ url_for('profile') }}" class="pm-who" role="menuitem">
+                                <span class="profile-avatar-circle">{{ (current_user.username|default('U', true))[0]|upper }}</span>
+                                <span>
+                                    <strong>{{ current_user.username|default('User', true) }}</strong>
+                                    <small>View my profile</small>
+                                </span>
+                            </a>
+
+                            <a href="{{ url_for('watchlist') }}" class="pm-item" role="menuitem">
+                                <span class="pm-icon" aria-hidden="true">🔖</span>
+                                <span class="pm-text">
+                                    <strong>My Watchlist</strong>
+                                    <span>View and manage your saved movies</span>
+                                </span>
+                                {% set pm_count = watchlist_count|default(0, true)|int %}
+                                {% if pm_count > 0 %}<span class="pm-count">{{ pm_count }}</span>{% else %}<span class="pm-arrow">→</span>{% endif %}
+                            </a>
+
+                            <a href="{{ url_for('recommendations') }}" class="pm-item" role="menuitem">
+                                <span class="pm-icon" aria-hidden="true">⚡</span>
+                                <span class="pm-text">
+                                    <strong>Recommendations</strong>
+                                    <span>Get movie suggestions based on what you love</span>
+                                </span>
+                                <span class="pm-arrow">→</span>
+                            </a>
+
+                            <a href="{{ url_for('explore') }}" class="pm-item" role="menuitem">
+                                <span class="pm-icon" aria-hidden="true">🧭</span>
+                                <span class="pm-text">
+                                    <strong>Explore Movies</strong>
+                                    <span>Browse and filter all movies</span>
+                                </span>
+                                <span class="pm-arrow">→</span>
+                            </a>
+
+                            <a href="{{ url_for('logout') }}" class="pm-item pm-out" role="menuitem">
+                                <span class="pm-icon" aria-hidden="true">🚪</span>
+                                <span class="pm-text">
+                                    <strong>Sign Out</strong>
+                                    <span>Sign out of {{ current_user.username|default('your account', true) }} on this browser</span>
+                                </span>
+                                <span class="pm-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+                    <script>
+                    (function () {
+                        var wrap = document.getElementById('pmWrap'),
+                            btn = document.getElementById('pmTrigger'),
+                            menu = document.getElementById('pmMenu');
+                        if (!wrap) return;
+                        function keepOnScreen() {
+                            menu.style.transform = '';
+                            var r = menu.getBoundingClientRect(), pad = 8, shift = 0;
+                            if (r.left < pad) shift = pad - r.left;
+                            else if (r.right > window.innerWidth - pad) shift = (window.innerWidth - pad) - r.right;
+                            if (shift) menu.style.transform = 'translateX(' + shift + 'px)';
+                        }
+                        function setOpen(open) {
+                            menu.classList.toggle('open', open);
+                            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                            if (open) keepOnScreen();
+                        }
+                        window.addEventListener('resize', function () {
+                            if (menu.classList.contains('open')) keepOnScreen();
+                        });
+                        btn.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            setOpen(!menu.classList.contains('open'));
+                        });
+                        document.addEventListener('click', function (e) {
+                            if (!wrap.contains(e.target)) setOpen(false);
+                        });
+                        document.addEventListener('keydown', function (e) {
+                            if (e.key === 'Escape' && menu.classList.contains('open')) { setOpen(false); btn.focus(); }
+                        });
+                    })();
+                    </script>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="auth-login-link">Log In</a>
+                    <a href="{{ url_for('signup') }}" class="nav-cta-btn">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand-col">
+                    <div class="footer-brand">
+                        <span class="logo-icon text-gold" aria-hidden="true">★</span>
+                        <span class="brand-text">Cine<span class="text-gold">Match</span> AI</span>
+                    </div>
+                    <p class="footer-desc">
+                        Discover movies you'll love. Search, explore, get recommendations
+                        and keep your favorites in one place.
+                    </p>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-col-title">Navigation</h4>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('home') }}">Home</a></li>
+                        <li><a href="{{ url_for('explore') }}">Explore Movies</a></li>
+                        <li><a href="{{ url_for('recommendations') }}">Recommendations</a></li>
+                        <li><a href="{{ url_for('watchlist') }}">My Watchlist</a></li>
+                        <li><a href="{{ url_for('about') }}">About CineMatch</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-col-title">User Account</h4>
+                    <ul class="footer-links">
+                        {% if current_user is defined and current_user and current_user.is_authenticated is defined and current_user.is_authenticated %}
+                            <li><a href="{{ url_for('profile') }}">My Profile</a></li>
+                            <li><a href="{{ url_for('watchlist') }}">Watchlist ({{ watchlist_count|default(0, true)|int }})</a></li>
+                            <li><a href="{{ url_for('logout') }}">Sign Out</a></li>
+                        {% elif current_user is defined and current_user and current_user.is_authenticated is not defined %}
+                            <li><a href="{{ url_for('profile') }}">My Profile</a></li>
+                            <li><a href="{{ url_for('watchlist') }}">Watchlist ({{ watchlist_count|default(0, true)|int }})</a></li>
+                            <li><a href="{{ url_for('logout') }}">Sign Out</a></li>
+                        {% else %}
+                            <li><a href="{{ url_for('login') }}">Log In</a></li>
+                            <li><a href="{{ url_for('signup') }}">Create Account / Sign Up</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>© 2026 CineMatch AI. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    {% include 'chatbot.html' %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

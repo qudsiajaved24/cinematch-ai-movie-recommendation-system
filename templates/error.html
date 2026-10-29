@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Notice — CineMatch AI{% endblock %}
+
+{% block content %}
+<div class="error-page-container">
+    <div class="content-container">
+        <div class="error-box">
+            <div class="error-icon">🎬</div>
+            <h1 class="error-title">Notice</h1>
+            <p class="error-msg">{{ message if message else "The requested movie or page could not be found." }}</p>
+            <div class="error-actions">
+                <a href="{{ url_for('home') }}" class="primary-accent-btn">Return to Home</a>
+                <a href="{{ url_for('explore') }}" class="secondary-btn">Browse Movies</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

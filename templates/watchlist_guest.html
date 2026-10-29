@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}My Watchlist — CineMatch AI{% endblock %}
+
+{% block content %}
+<div class="watchlist-guest-container">
+    <div class="content-container">
+        <div class="guest-gate-card">
+            <div class="gate-icon">🔖</div>
+            <h1 class="gate-title">Save Movies to Your Watchlist</h1>
+            <p class="gate-desc">
+                Create a free account or sign in to bookmark movies, keep track of films you want to watch, and get personalized recommendations based on your taste.
+            </p>
+
+            <div class="gate-actions-row">
+                <a href="{{ url_for('signup') }}" class="primary-accent-btn gate-btn">
+                    Create Profile & Sign Up
+                </a>
+                <a href="{{ url_for('login', next=url_for('watchlist')) }}" class="secondary-btn gate-btn">
+                    Log In to Existing Account
+                </a>
+            </div>
+
+            <div class="gate-features-row">
+                <div class="gate-feat">
+                    <span class="feat-bullet">★</span>
+                    <span>Save any movie to watch later</span>
+                </div>
+                <div class="gate-feat">
+                    <span class="feat-bullet">★</span>
+                    <span>Get recommendations based on your saved movies</span>
+                </div>
+                <div class="gate-feat">
+                    <span class="feat-bullet">★</span>
+                    <span>Personalized favorite genres profile</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

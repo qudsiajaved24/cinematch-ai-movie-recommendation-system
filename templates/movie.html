@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}{{ movie.title }} ({{ movie.release_year }}) — CineMatch AI Details{% endblock %}
+
+{% block content %}
+<div class="movie-detail-page">
+    <div class="content-container">
+        <!-- Breadcrumb Navigation -->
+        <nav class="breadcrumb-nav">
+            <a href="{{ url_for('home') }}">Home</a>
+            <span class="sep">/</span>
+            <a href="{{ url_for('explore') }}">Movies</a>
+            <span class="sep">/</span>
+            <span class="current">{{ movie.title }}</span>
+        </nav>
+
+        <!-- Movie Hero Container -->
+        <div class="movie-hero-card">
+            <!-- Left Poster Column -->
+            <div class="movie-detail-poster-col">
+                <div class="detail-poster-wrap">
+                    {% if movie.poster_url %}
+                        <img 
+                            src="{{ movie.poster_url }}" 
+                            alt="{{ movie.title }} Official Poster" 
+                            class="detail-poster-img"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        <div class="poster-fallback detail-fallback" style="display: none;">
+                            <span class="fallback-icon">🎬</span>
+                            <span class="fallback-title">{{ movie.title }}</span>
+                        </div>
+                    {% else %}
+                        <div class="poster-fallback detail-fallback">
+                            <span class="fallback-icon">🎬</span>
+                            <span class="fallback-title">{{ movie.title }}</span>
+                            <span class="fallback-note">Poster unavailable</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Primary Recommendation Action Button -->
+                <div class="detail-action-box">
+                    <a href="{{ url_for('recommend', movie_id=movie.id) }}" class="get-recs-btn">
+                        <span class="btn-icon">⚡</span>
+                        <span>Recommend Similar Movies</span>
+                    </a>
+                    <button 
+                        type="button" 
+                        class="detail-watchlist-btn {% if movie.in_watchlist %}active{% endif %}"
+                        data-movie-id="{{ movie.id }}"
+                        onclick="toggleWatchlist(this, Number(this.dataset.movieId))"
+                    >
+                        <span class="btn-icon">🔖</span>
+                        <span class="btn-text">{% if movie.in_watchlist %}In Watchlist{% else %}Add to Watchlist{% endif %}</span>
+                    </button>
+                </div>
+
+                <!-- Interactive User Rating Box -->
+                <div class="user-rating-widget" data-movie-id="{{ movie.id }}">
+                    <span class="widget-title">Rate this movie:</span>
+                    <div class="star-rating-row" id="starRatingRow">
+                        <button type="button" class="star-btn" data-value="1" title="1 star - Poor">★</button>
+                        <button type="button" class="star-btn" data-value="2" title="2 stars - Fair">★</button>
+                        <button type="button" class="star-btn" data-value="3" title="3 stars - Good">★</button>
+                        <button type="button" class="star-btn" data-value="4" title="4 stars - Great">★</button>
+                        <button type="button" class="star-btn" data-value="5" title="5 stars - Masterpiece">★</button>
+                    </div>
+                    <div class="rating-feedback" id="ratingFeedbackMsg">Click stars to rate</div>
+                </div>
+            </div>
+
+            <!-- Right Content & Metadata Column -->
+            <div class="movie-detail-content-col">
+                <div class="movie-header-block">
+                    <h1 class="detail-title">{{ movie.title }}</h1>
+                    {% if movie.tagline %}
+                        <p class="detail-tagline">"{{ movie.tagline }}"</p>
+                    {% endif %}
+
+                    <!-- Metadata summary line -->
+                    <div class="detail-meta-line">
+                        <span class="meta-item year-meta">{{ movie.release_year }}</span>
+                        <span class="meta-dot">·</span>
+                        <span class="meta-item">{{ movie.runtime|int }} minutes</span>
+                        <span class="meta-dot">·</span>
+                        <span class="meta-item">{{ movie.genres_str }}</span>
+                    </div>
+
+                    <!-- Scores & Statistics Grid -->
+                    <div class="detail-stats-bar">
+                        <div class="stat-pill-box">
+                            <div class="stat-label">Rating</div>
+                            <div class="stat-val text-gold">★ {{ movie.vote_average }} <span class="stat-max">/ 10</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synopsis Overview -->
+                <div class="detail-section">
+                    <h3 class="detail-section-title">Overview</h3>
+                    <p class="detail-overview-text">
+                        {{ movie.overview if movie.overview else 'No synopsis is available for this film yet.' }}
+                    </p>
+                </div>
+
+                <!-- Cast & Crew Metadata Grid -->
+                <div class="detail-section">
+                    <h3 class="detail-section-title">Key Cast & Production</h3>
+                    <dl class="meta-dl-grid">
+                        <div class="meta-dl-row">
+                            <dt>Director</dt>
+                            <dd>
+                                <strong>{{ movie.director }}</strong>
+                                {% if movie.director != 'Unknown' %}
+                                    <a href="{{ url_for('explore', q=movie.director) }}" class="search-director-link">
+                                        (view filmography)
+                                    </a>
+                                {% endif %}
+                            </dd>
+                        </div>
+
+                        <div class="meta-dl-row">
+                            <dt>Starring Cast</dt>
+                            <dd>{{ movie.cast_str }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Quick Recommendation CTA -->
+                <div class="detail-cta-banner">
+                    <div class="cta-text">
+                        <h4>Explore Similar Cinema</h4>
+                        <p>Find more movies with a similar story, cast and feel.</p>
+                    </div>
+                    <a href="{{ url_for('recommend', movie_id=movie.id) }}" class="primary-accent-btn">
+                        Recommend Similar Movies →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Recommendations Row Directly Below Opened Movie -->
+        {% if recommendations and recommendations|length > 0 %}
+        <section class="preview-recs-section" id="recommendedSection" style="margin-top: 3.5rem;">
+            <div class="section-title-row">
+                <div>
+                    <span class="section-kicker">Recommended for You</span>
+                    <h2 class="section-heading">Movies Similar to {{ movie.title }}</h2>
+                </div>
+                <div class="results-count-text">
+                    Picked for you, best match first
+                </div>
+            </div>
+
+            <div class="movies-grid">
+                {% for rec in recommendations %}
+                <article class="movie-card rec-card">
+                    <div class="movie-poster-box">
+                        {% if rec.poster_url %}
+                            <img 
+                                src="{{ rec.poster_url }}" 
+                                alt="{{ rec.title }} Poster" 
+                                class="movie-poster-img"
+                                loading="lazy"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                            >
+                            <div class="poster-fallback" style="display: none;">
+                                <span class="fallback-icon">🎬</span>
+                                <span class="fallback-title">{{ rec.title }}</span>
+                            </div>
+                        {% else %}
+                            <div class="poster-fallback">
+                                <span class="fallback-icon">🎬</span>
+                                <span class="fallback-title">{{ rec.title }}</span>
+                                <span class="fallback-note">Poster unavailable</span>
+                            </div>
+                        {% endif %}
+
+                        <div class="movie-card-overlay">
+                            <a href="{{ url_for('movie_detail', movie_id=rec.id) }}" class="card-action-btn primary-btn">
+                                Open Movie Details
+                            </a>
+                            <a href="{{ url_for('recommend', movie_id=rec.id) }}" class="card-action-btn secondary-btn">
+                                Recommendations
+                            </a>
+                            <button 
+                                type="button" 
+                                class="card-action-btn watchlist-card-btn {% if rec.in_watchlist %}active{% endif %}"
+                                data-movie-id="{{ rec.id }}"
+                                onclick="toggleWatchlist(this, Number(this.dataset.movieId))"
+                            >
+                                {% if rec.in_watchlist %}✓ In Watchlist{% else %}🔖 Watchlist{% endif %}
+                            </button>
+                        </div>
+
+                        <!-- Match badge -->
+                        <div class="rank-badge">
+                            #{{ loop.index }}
+                        </div>
+
+                        <div class="card-rating-badge">
+                            <span class="star-icon">★</span>
+                            <span>{{ rec.vote_average }}</span>
+                        </div>
+                    </div>
+
+                    <div class="movie-info-box">
+                        <h3 class="movie-title">
+                            <a href="{{ url_for('movie_detail', movie_id=rec.id) }}">{{ rec.title }}</a>
+                        </h3>
+                        <div class="movie-meta">
+                            <span>{{ rec.release_year }}</span>
+                            <span class="meta-dot">·</span>
+                            <span>{{ rec.genres_str.split(',')[0] }}</span>
+                            {% if rec.runtime %}
+                            <span class="meta-dot">·</span>
+                            <span>{{ rec.runtime }}m</span>
+                            {% endif %}
+                        </div>
+
+                        {% if rec.director and rec.director != 'Unknown' %}
+                        <div class="movie-director-meta">
+                            Dir. {{ rec.director }}
+                        </div>
+                        {% endif %}
+
+                        <div class="rec-metrics-breakdown">
+                            <div class="rec-metric-item">
+                                <span class="metric-key">Match</span>
+                                <span class="metric-val text-gold">{{ rec.similarity_pct }}%</span>
+                            </div>
+                            <div class="rec-metric-item">
+                                <span class="metric-key">Rating</span>
+                                <span class="metric-val">★ {{ rec.vote_average }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

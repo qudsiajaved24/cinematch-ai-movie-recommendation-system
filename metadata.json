@@ -1,0 +1,6 @@
+{
+  "name": "CineMatch AI - Movie Recommendation System",
+  "description": "Discover movies you'll love. Search, explore and get personalized movie recommendations with CineMatch AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

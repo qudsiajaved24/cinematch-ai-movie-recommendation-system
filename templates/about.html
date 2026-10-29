@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}About — CineMatch{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* About page: scoped with the "ab-" prefix so nothing else on the site is affected */
+    .ab-page { padding: 3.5rem 0 5.5rem; }
+
+    .ab-hero { max-width: 760px; margin: 0 auto 4rem; text-align: center; }
+    .ab-hero h1 { font-size: 2.75rem; font-weight: 800; line-height: 1.15; margin-bottom: 1rem; }
+    .ab-hero p { font-size: 1.15rem; color: var(--text-secondary); line-height: 1.65; }
+    .ab-hero-actions { display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
+
+    .ab-section { margin-bottom: 4.5rem; }
+    .ab-section-title { font-size: 1.75rem; font-weight: 800; text-align: center; margin-bottom: 0.5rem; }
+    .ab-section-sub { text-align: center; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2.25rem; line-height: 1.6; }
+
+    /* Journey: a real sequence, so the steps are numbered */
+    .ab-steps { list-style: none; max-width: 760px; margin: 0 auto; padding: 0; position: relative; }
+    .ab-steps::before {
+        content: ""; position: absolute; left: 21px; top: 8px; bottom: 8px;
+        width: 2px; background: var(--border-card);
+    }
+    .ab-step { position: relative; display: flex; gap: 1.25rem; padding-bottom: 2rem; }
+    .ab-step:last-child { padding-bottom: 0; }
+    .ab-step-num {
+        flex: 0 0 44px; height: 44px; border-radius: 50%;
+        background: var(--bg-main); border: 2px solid var(--gold-primary);
+        color: var(--gold-primary); font-family: var(--font-mono); font-weight: 700;
+        display: flex; align-items: center; justify-content: center; position: relative; z-index: 1;
+    }
+    .ab-step-body {
+        flex: 1; background: var(--bg-surface); border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+    }
+    .ab-step-body h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem; }
+    .ab-step-body p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+    .ab-step-body .ab-where { display: inline-block; margin-top: 0.6rem; font-size: 0.88rem; font-weight: 600; color: var(--gold-primary); text-decoration: none; }
+    .ab-step-body .ab-where:hover { color: var(--gold-hover); text-decoration: underline; }
+
+    /* Guest vs account */
+    .ab-compare { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; max-width: 900px; margin: 0 auto; }
+    .ab-col { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.75rem; }
+    .ab-col.is-account { border-color: rgba(245, 158, 11, 0.45); box-shadow: var(--shadow-elevated); }
+    .ab-col h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .ab-col .ab-col-note { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.1rem; }
+    .ab-col ul { list-style: none; padding: 0; margin: 0; }
+    .ab-col li { position: relative; padding-left: 1.6rem; margin-bottom: 0.7rem; color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; }
+    .ab-col li::before { content: "✓"; position: absolute; left: 0; color: var(--gold-primary); font-weight: 700; }
+
+    /* Questions */
+    .ab-faq { max-width: 760px; margin: 0 auto; display: grid; gap: 0.75rem; }
+    .ab-faq details { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+    .ab-faq details[open] { border-color: var(--border-card); }
+    .ab-faq summary {
+        cursor: pointer; padding: 1rem 1.25rem; font-weight: 600; list-style: none;
+        display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    }
+    .ab-faq summary::-webkit-details-marker { display: none; }
+    .ab-faq summary::after { content: "+"; color: var(--gold-primary); font-size: 1.3rem; line-height: 1; }
+    .ab-faq details[open] summary::after { content: "–"; }
+    .ab-faq summary:focus-visible { outline: 2px solid var(--gold-primary); outline-offset: 2px; border-radius: var(--radius-md); }
+    .ab-faq details p { padding: 0 1.25rem 1.1rem; color: var(--text-secondary); line-height: 1.6; font-size: 0.95rem; }
+
+    .ab-final { text-align: center; padding-top: 3rem; border-top: 1px solid var(--border-subtle); }
+    .ab-final h2 { font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .ab-final p { color: var(--text-secondary); margin-bottom: 1.5rem; }
+
+    @media (max-width: 768px) {
+        .ab-hero h1 { font-size: 2.1rem; }
+        .ab-compare { grid-template-columns: 1fr; }
+        .ab-step-body { padding: 1rem 1.15rem; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ab-page">
+    <div class="content-container">
+
+        <!-- Intro -->
+        <section class="ab-hero">
+            <h1>Find your next movie in minutes</h1>
+            <p>
+                CineMatch helps you decide what to watch. Pick a movie you already love, and we suggest
+                similar ones you're likely to enjoy. Browse a huge collection of titles, save the ones you
+                want to see, and keep them all in one place.
+            </p>
+            <div class="ab-hero-actions">
+                <a href="{{ url_for('recommendations') }}" class="primary-accent-btn">Get recommendations</a>
+                <a href="{{ url_for('explore') }}" class="secondary-btn">Browse movies</a>
+            </div>
+        </section>
+
+        <!-- How you use it -->
+        <section class="ab-section">
+            <h2 class="ab-section-title">How CineMatch works for you</h2>
+            <p class="ab-section-sub">Four simple steps from "I don't know what to watch" to a movie night plan.</p>
+
+            <ol class="ab-steps">
+                <li class="ab-step">
+                    <span class="ab-step-num">1</span>
+                    <div class="ab-step-body">
+                        <h3>Search for a movie you like</h3>
+                        <p>Type a title, an actor or a director into the search bar at the top of any page. Suggestions appear as you type, so you can jump straight to the movie you mean.</p>
+                        <a class="ab-where" href="{{ url_for('home') }}">Go to the home page</a>
+                    </div>
+                </li>
+                <li class="ab-step">
+                    <span class="ab-step-num">2</span>
+                    <div class="ab-step-body">
+                        <h3>Browse and filter the catalog</h3>
+                        <p>Not sure what you're in the mood for? Explore the full collection and narrow it down by genre, decade and minimum rating, then sort by what's popular or best rated.</p>
+                        <a class="ab-where" href="{{ url_for('explore') }}">Open Explore</a>
+                    </div>
+                </li>
+                <li class="ab-step">
+                    <span class="ab-step-num">3</span>
+                    <div class="ab-step-body">
+                        <h3>See movies picked for you</h3>
+                        <p>Open any movie to read its story, cast and rating. Right below it you'll find similar movies worth watching next. You can also choose a favorite on the Recommendations page and get a fresh list instantly.</p>
+                        <a class="ab-where" href="{{ url_for('recommendations') }}">Open Recommendations</a>
+                    </div>
+                </li>
+                <li class="ab-step">
+                    <span class="ab-step-num">4</span>
+                    <div class="ab-step-body">
+                        <h3>Save it for later</h3>
+                        <p>Tap the watchlist button on any movie to bookmark it. Your saved movies are waiting on the Watchlist page whenever you're ready, and you can remove them once you've watched them.</p>
+                        <a class="ab-where" href="{{ url_for('watchlist') }}">Open Watchlist</a>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Guest vs account -->
+        <section class="ab-section">
+            <h2 class="ab-section-title">Use it with or without an account</h2>
+            <p class="ab-section-sub">You can start right away. Create a free account when you want to keep your picks.</p>
+
+            <div class="ab-compare">
+                <div class="ab-col">
+                    <h3>Just visiting</h3>
+                    <p class="ab-col-note">No sign-up needed</p>
+                    <ul>
+                        <li>Search the full movie catalog</li>
+                        <li>Filter and sort in Explore</li>
+                        <li>Read details, cast and ratings for every movie</li>
+                        <li>Get movie recommendations</li>
+                    </ul>
+                </div>
+                <div class="ab-col is-account">
+                    <h3>With a free account</h3>
+                    <p class="ab-col-note">Everything above, plus</p>
+                    <ul>
+                        <li>A personal watchlist that's saved to your account</li>
+                        <li>Your own star ratings for movies you've seen</li>
+                        <li>Favorite genres on your profile</li>
+                        <li>Your activity summary on your profile page</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Questions -->
+        <section class="ab-section">
+            <h2 class="ab-section-title">Common questions</h2>
+            <p class="ab-section-sub">Quick answers before you start.</p>
+
+            <div class="ab-faq">
+                <details>
+                    <summary>Is CineMatch free?</summary>
+                    <p>Yes. Searching, browsing, recommendations and your account are all free to use.</p>
+                </details>
+                <details>
+                    <summary>Do I need an account to get recommendations?</summary>
+                    <p>No. Pick any movie and you'll see similar suggestions straight away. An account is only needed to save a watchlist, rate movies and set favorite genres.</p>
+                </details>
+                <details>
+                    <summary>What kind of movies can I find?</summary>
+                    <p>There's a wide mix, from well-known classics to smaller films you may not have heard of.</p>
+                </details>
+                <details>
+                    <summary>Why can't I find a movie I'm looking for?</summary>
+                    <p>The catalog doesn't include every movie ever made. Try searching by the director or an actor's name, or check the spelling of the title.</p>
+                </details>
+                <details>
+                    <summary>How do I remove a movie from my watchlist?</summary>
+                    <p>Open your Watchlist page and use the remove button on the movie, or tap the watchlist button again on the movie's own page.</p>
+                </details>
+            </div>
+        </section>
+
+        <!-- Final call to action -->
+        <section class="ab-final">
+            {% if current_user %}
+                <h2>Ready for your next watch, {{ current_user.username }}?</h2>
+                <p>Pick a movie you love and see what's similar.</p>
+                <a href="{{ url_for('recommendations') }}" class="primary-accent-btn">Get recommendations</a>
+            {% else %}
+                <h2>Start finding movies you'll love</h2>
+                <p>Create a free account to save your watchlist and rate what you've watched.</p>
+                <div class="ab-hero-actions" style="margin-top:0;">
+                    <a href="{{ url_for('signup') }}" class="primary-accent-btn">Create free account</a>
+                    <a href="{{ url_for('login') }}" class="secondary-btn">Log in</a>
+                </div>
+            {% endif %}
+        </section>
+
+    </div>
+</div>
+{% endblock %}

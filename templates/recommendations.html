@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations — CineMatch AI{% endblock %}
+
+{% block content %}
+<div class="recommendations-page">
+    <div class="content-container">
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumb-nav">
+            <a href="{{ url_for('home') }}">Home</a>
+            <span class="sep">/</span>
+            <span class="current">
+                {% if anchor_mode == 'watchlist' %}
+                    Recommendations Based on Your Watchlist
+                {% elif anchor_mode == 'rated' %}
+                    Recommendations Based on Your Rated Films
+                {% else %}
+                    Recommendations for {{ target_movie.title }}
+                {% endif %}
+            </span>
+        </nav>
+
+        <!-- Recommendation Source Selection Tabs -->
+        <div class="rec-source-tabs-container">
+            <span class="source-tabs-label">Recommend based on:</span>
+            <div class="source-tabs-row">
+                <a href="{{ url_for('recommendations', source='movie', movie_id=(target_movie.id if target_movie else 27205)) }}" 
+                   class="source-tab-btn {% if anchor_mode == 'movie' %}active{% endif %}">
+                    🎬 By Selected Movie
+                </a>
+                
+                <a href="{{ url_for('recommendations', source='watchlist') }}" 
+                   class="source-tab-btn {% if anchor_mode == 'watchlist' %}active{% endif %}">
+                    🔖 Based on Watchlist ({{ watchlist_total }})
+                </a>
+
+                <a href="{{ url_for('recommendations', source='rated') }}" 
+                   class="source-tab-btn {% if anchor_mode == 'rated' %}active{% endif %}">
+                    ⭐ Based on Rated Films ({{ rated_total }})
+                </a>
+            </div>
+        </div>
+
+        {% if anchor_mode == 'movie' and target_movie %}
+            <!-- Quick Anchor Selector Bar for Movie Mode -->
+            <div class="quick-anchors-bar">
+                <span class="anchors-label">Quick pick:</span>
+                <div class="anchors-scroll">
+                    {% for a in quick_anchors %}
+                        <a href="{{ url_for('recommendations', movie_id=a.id) }}" class="anchor-chip {% if a.id == target_movie.id %}active{% endif %}">
+                            {{ a.title }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Selected Movie Hero Summary Banner -->
+            <div class="target-selection-banner">
+                <div class="target-badge-label">
+                    <span class="target-dot"></span>
+                    <span>Your Selected Movie</span>
+                </div>
+
+                <div class="target-movie-layout">
+                    <div class="target-poster-thumb">
+                        {% if target_movie.poster_url %}
+                            <img 
+                                src="{{ target_movie.poster_url }}" 
+                                alt="{{ target_movie.title }}" 
+                                class="target-poster-img"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                            >
+                            <div class="poster-fallback target-fallback" style="display: none;">
+                                <span>🎬</span>
+                            </div>
+                        {% else %}
+                            <div class="poster-fallback target-fallback">
+                                <span>🎬</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="target-info">
+                        <span class="selected-kicker">Because you selected</span>
+                        <h1 class="target-title">
+                            <a href="{{ url_for('movie_detail', movie_id=target_movie.id) }}">{{ target_movie.title }}</a>
+                            <span class="target-year">({{ target_movie.release_year }})</span>
+                        </h1>
+
+                        <div class="target-meta-line">
+                            <span>Dir. <strong>{{ target_movie.director }}</strong></span>
+                            <span class="meta-dot">·</span>
+                            <span>{{ target_movie.genres_str }}</span>
+                            <span class="meta-dot">·</span>
+                            <span class="text-gold">★ {{ target_movie.vote_average }} ({{ "{:,}".format(target_movie.vote_count|int) }} votes)</span>
+                        </div>
+
+                        <p class="target-overview-snippet">
+                            {{ target_movie.overview[:220] }}{% if target_movie.overview|length > 220 %}...{% endif %}
+                        </p>
+
+                        <!-- Watchlist Toggle for Target Movie -->
+                        <div class="target-actions-row">
+                            <button 
+                                type="button" 
+                                class="watchlist-btn {% if target_movie.in_watchlist %}active{% endif %}"
+                                data-movie-id="{{ target_movie.id }}"
+                                onclick="toggleWatchlist(this, this.dataset.movieId)"
+                            >
+                                <span class="btn-icon">🔖</span>
+                                <span class="btn-text">{% if target_movie.in_watchlist %}In Watchlist{% else %}Add to Watchlist{% endif %}</span>
+                            </button>
+                            <a href="{{ url_for('movie_detail', movie_id=target_movie.id) }}" class="secondary-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% elif anchor_mode == 'watchlist' %}
+            <!-- Watchlist Aggregate Anchor Banner -->
+            <div class="target-selection-banner multi-anchor-banner">
+                <div class="target-badge-label">
+                    <span class="target-dot"></span>
+                    <span>Based on Your Watchlist</span>
+                </div>
+                <div class="multi-anchor-content">
+                    <h2 class="target-title">Recommendations Based on Your Watchlist</h2>
+                    <p class="target-overview-snippet">
+                        Picked from the {{ watchlist_total }} movie{{ 's' if watchlist_total != 1 else '' }} you saved, looking at similar stories, directors and cast. Movies already in your watchlist are left out.
+                    </p>
+                    {% if anchor_movies %}
+                    <div class="anchor-films-chips">
+                        <span class="anchors-label">Based on:</span>
+                        {% for am in anchor_movies %}
+                            <a href="{{ url_for('movie_detail', movie_id=am.id) }}" class="anchor-film-tag">
+                                {{ am.title }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        {% elif anchor_mode == 'rated' %}
+            <!-- Rated Aggregate Anchor Banner -->
+            <div class="target-selection-banner multi-anchor-banner">
+                <div class="target-badge-label">
+                    <span class="target-dot"></span>
+                    <span>Based on Your Ratings</span>
+                </div>
+                <div class="multi-anchor-content">
+                    <h2 class="target-title">Recommendations Based on Your Highest Ratings</h2>
+                    <p class="target-overview-snippet">
+                        Picked from the movies you rated highly, so you can find more films you're likely to enjoy.
+                    </p>
+                    {% if anchor_movies %}
+                    <div class="anchor-films-chips">
+                        <span class="anchors-label">Based on:</span>
+                        {% for am in anchor_movies %}
+                            <a href="{{ url_for('movie_detail', movie_id=am.id) }}" class="anchor-film-tag">
+                                {{ am.title }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Recommendations Grid Header -->
+        <div class="results-header-row" style="margin-top: 2rem;">
+            <div>
+                <span class="section-kicker">Tailored Matches</span>
+                <h2 class="section-heading">Recommended Movies</h2>
+            </div>
+            <div class="results-count-text">
+                Your top <strong>{{ recommendations|length }}</strong> picks, best match first
+            </div>
+        </div>
+
+        <!-- Recommendations Grid -->
+        <div class="movies-grid recs-grid">
+            {% for rec in recommendations %}
+            <article class="movie-card rec-card">
+                <div class="movie-poster-box">
+                    {% if rec.poster_url %}
+                        <img 
+                            src="{{ rec.poster_url }}" 
+                            alt="{{ rec.title }} Poster" 
+                            class="movie-poster-img"
+                            loading="lazy"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                        >
+                        <div class="poster-fallback" style="display: none;">
+                            <span class="fallback-icon">🎬</span>
+                            <span class="fallback-title">{{ rec.title }}</span>
+                        </div>
+                    {% else %}
+                        <div class="poster-fallback">
+                            <span class="fallback-icon">🎬</span>
+                            <span class="fallback-title">{{ rec.title }}</span>
+                            <span class="fallback-note">Poster unavailable</span>
+                        </div>
+                    {% endif %}
+
+                    <div class="movie-card-overlay">
+                        <a href="{{ url_for('movie_detail', movie_id=rec.id) }}" class="card-action-btn primary-btn">
+                            View Movie Details
+                        </a>
+                        <a href="{{ url_for('recommendations', movie_id=rec.id) }}" class="card-action-btn secondary-btn">
+                            Explore Similar
+                        </a>
+                        <button 
+                            type="button" 
+                            class="card-action-btn watchlist-card-btn {% if rec.in_watchlist %}active{% endif %}"
+                            data-movie-id="{{ rec.id }}"
+                            onclick="toggleWatchlist(this, this.dataset.movieId)"
+                        >
+                            {% if rec.in_watchlist %}✓ In Watchlist{% else %}🔖 Watchlist{% endif %}
+                        </button>
+                    </div>
+
+                    <!-- Rank Badge -->
+                    <div class="rank-badge">
+                        #{{ loop.index }}
+                    </div>
+
+                    <!-- Rating Badge -->
+                    <div class="card-rating-badge">
+                        <span class="star-icon">★</span>
+                        <span>{{ rec.vote_average }}</span>
+                    </div>
+                </div>
+
+                <div class="movie-info-box">
+                    <h3 class="movie-title">
+                        <a href="{{ url_for('movie_detail', movie_id=rec.id) }}">{{ rec.title }}</a>
+                    </h3>
+
+                    <div class="movie-meta">
+                        <span>{{ rec.release_year }}</span>
+                        <span class="meta-dot">·</span>
+                        <span>{{ rec.genres_str.split(',')[0] }}</span>
+                        {% if rec.runtime %}
+                        <span class="meta-dot">·</span>
+                        <span>{{ rec.runtime }}m</span>
+                        {% endif %}
+                    </div>
+
+                    {% if rec.director and rec.director != 'Unknown' %}
+                    <div class="movie-director-meta">
+                        Dir. {{ rec.director }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Scoring Breakdown -->
+                    <div class="rec-metrics-breakdown">
+                        <div class="rec-metric-item">
+                            <span class="metric-key">Match</span>
+                            <span class="metric-val text-gold">{{ rec.similarity_pct }}%</span>
+                        </div>
+                        {% if favorite_genres %}
+                        <div class="rec-metric-item">
+                            <span class="metric-key">Genre</span>
+                            <span class="metric-val">{{ rec.genre_match_pct }}%</span>
+                        </div>
+                        {% endif %}
+                        <div class="rec-metric-item">
+                            <span class="metric-key">Rating</span>
+                            <span class="metric-val">★ {{ rec.vote_average }}</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <!-- Bottom Navigation Links -->
+        <div class="recs-bottom-bar">
+            <a href="{{ url_for('explore') }}" class="secondary-btn">
+                ← Explore More Movies
+            </a>
+            <a href="{{ url_for('watchlist') }}" class="primary-accent-btn">
+                Go to My Watchlist →
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
